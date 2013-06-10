@@ -1,0 +1,99 @@
+apply plugin: 'java'
+apply plugin: 'eclipse'
+// use $ gradle dependencies instead of:
+    //apply plugin: 'project-reports'
+apply plugin: 'application'
+
+
+task packageSources(type: Jar, dependsOn: classes) {
+  from project.sourceSets.main.allSource
+  classifier = 'sources'
+
+}
+task packageJavadocs(type: Jar, dependsOn: javadoc) {
+  from project.javadoc.destinationDir
+  classifier = 'javadoc' 
+}
+
+
+// eclipse
+eclipse.classpath.file 
+{
+  whenMerged 
+  {
+    classpath ->
+      classpath.entries.findAll 
+      {
+          entry -> entry.kind == 'output'
+      }*.path = 'build/classes'
+  }
+}
+
+
+
+// repos
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+
+    testCompile   group: 'junit', name: 'junit', version: '4.11'
+
+  // silly spock insists on pulling in "junit-dep-4.9" instead of "junit-4.9"
+  // testCompile   group: 'junit', name: 'junit', version: '4.9'
+}
+
+
+// simple archetype
+task initProjectStructure() << {
+  project.sourceSets.each { 
+      sset -> 
+         println "$sset" 
+         sset.allSource.srcDirs.flatten().each {
+              dir -> dir.mkdirs();
+         }
+  }
+ 
+}
+
+// application plugin
+mainClassName = "tiemens.clock.Main"
+
+// bootstrap code for gradlew
+task wrapper(type: Wrapper) {
+  gradleVersion = '1.4'
+}
+
+// dependencies in png
+// readonly: reportsDir = new File("build/reports")
+
+task dependenciesPng() {
+  def  compileDepsPng = file("$reporting.baseDir/compileDeps.png")
+
+  inputs.files subprojects.configurations.compile
+  outputs.files compileDepsPng
+  doFirst {
+    if(compileDepsPng.exists()) compileDepsPng.delete()
+    if(!reportsDir.exists()) reportsDir.mkdirs()
+  
+  }
+  doLast {
+    dotGraph = "digraph Compile{"
+    subprojects.each {subproject ->
+      subproject.configurations.compile.dependencies.each {dependency ->
+      if(dependency instanceof ProjectDependency) {
+ dotGraph += "\"$subproject.name\" -> \"$dependency.name\"" 
+      }   }
+    }
+    dotGraph += "}"
+  
+    def chartParams = [cht: 'gv', chof: 'png', chl: dotGraph]
+    def url = "http://chart.googleapis.com/chart?" 
+    url += chartParams.collect {k,v -> "$k=${URLEncoder.encode(v)}"}.join('&')
+  
+    compileDepsPng.withOutputStream{out ->
+      out << new URL(url).openStream()
+    }   
+  }
+}
