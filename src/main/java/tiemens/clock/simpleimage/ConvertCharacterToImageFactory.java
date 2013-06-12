@@ -184,11 +184,19 @@ public class ConvertCharacterToImageFactory
     }
 
     // Create a resource loader that looks in the .zip file first, then tries class-loader, then the filesystem:
-    private static ResourceLoader zl = ResourceHelper.createZipfileLoader("images.zip.gz", true, true,
-            ResourceHelper.class, "", "src/main/resources/");
-    
+    private static ResourceLoader zl = 
+    		ResourceHelper.buildZipfileLoader("images.zip.gz", true, true,
+    	                                      ResourceHelper.class, "", "src/main/resources/");
+    		//ResourceHelper.createZipfileLoader("images.zip.gz", true, true,
+            //ResourceHelper.class, "", "src/main/resources/");
+    		//ResourceHelper.type();
+    private static boolean dumped = false;
     private static Image loadImageMultipleLocations(String path)
     {
+    	if (! dumped) {
+    		dumped = true;
+    		ResourceHelper.ResourceLoaderDebugUtil.dump(zl);
+    	}
     	return new ResourceHelper.RhTypeConverterWrapper(zl).getResourceAsImage(path);
     }
     

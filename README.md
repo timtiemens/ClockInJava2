@@ -25,6 +25,9 @@ The following items have been changed from ClockInJava:
  * standard java directory layout (src/main, src/test, etc.)
  * remove onejar
  * remove instancer/antlr [instancer is in its own project now]
+ * wrote util.ResourceHelper [hopefully for the last time]
+ 
 
-
+####To Do
+ * Completely change license from GPL to LGPL - currently, util.ResourceHelper is the only file updated
 
