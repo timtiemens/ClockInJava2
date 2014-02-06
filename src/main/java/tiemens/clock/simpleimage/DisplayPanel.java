@@ -1,22 +1,34 @@
 /*========================================================================
- * Clock.java
- * May 16, 2011 11:05:47 PM | ttiemens
- * Copyright (c) 2011 Tim Tiememsn
+ * DisplayPanel.java
+ * June 6, 2013 ttiemens
  *========================================================================
- * This file is part of ClockInJava.
+ * This file is part of ClockInJava2.
  *
- *    ClockInJava is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ * Copyright (c) 2013, Tim Tiemens
+ * All rights reserved.
  *
- *    ClockInJava is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
  *
- *    You should have received a copy of the GNU General Public License
- *    along with ClockInJava.  If not, see <http://www.gnu.org/licenses/>.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * You should have received a copy of the BSD-2-Clause license
+ * along with this program.  If not, see <http://opensource.org/licenses/BSD-2-Clause>.
+ *   
  */
 package tiemens.clock.simpleimage;
 
@@ -36,9 +48,9 @@ import javax.swing.SwingUtilities;
 public class DisplayPanel
     extends Panel 
 {
-	private static final long serialVersionUID = -2829153743268504589L;
+    private static final long serialVersionUID = -2829153743268504589L;
 
-	private static Logger logger = Logger.getLogger("DisplayPanel");
+    private static Logger logger = Logger.getLogger("DisplayPanel");
     
     /**
      * background image, can be null.
@@ -150,186 +162,186 @@ public class DisplayPanel
         resize();
     }
     
-	/**
-	 * overwrite update method for double buffering
-	 * @param g graphics
-	 */
-	public void update(Graphics g) 
-	{
-	    paint(g);
-	}
-	
-	/**
-	 * Set string to display
-	 * @param info string to display
-	 */
-	public void setInfo(String info) 
-	{
-		current_info = info;
-		runRepaintLater();
-	}
-	private void runRepaintLater()
-	{
-		SwingUtilities.invokeLater(new Runnable()
-		{
-		    public void run()
-		    {
-		        repaint();
-		    }
-		});
-	}
-	
-	/**
-	 * Set the display background
-	 * @param image background image
-	 */
-	public void setBackgroundImage(Image image) 
-	{
-		img_bg = image; //background image
-        runRepaintLater();
-	}
-	
-	/**
-	 * Set number of display digits
-	 * @param numdig number of digits on display
-	 */
-	public void setNumDigits(int numdig) 
-	{
-		num_digits = numdig;
-		runRepaintLater();
-	}
-	
-	/**
-	 * Set the display digits
-	 * @param c2image converter
-	 */
-	public void setDigitsImages(ConvertCharacterToImage c2image) 
-	{
-		dig = c2image;
-        runRepaintLater();
-	}
-	
-	/**
-	 * Creates the Panel's peer.
-	 * The peer allows you to modify the appearance of the panel without changing its functionality.
-	 */
-	public synchronized void addNotify() 
-	{
-		resize();
-		super.addNotify();
-	}
-	
-	/**
-	 * Resize the display
-	 */
-	public void resize() 
-	{
-	    bw = 0;
-		bh = 0;
-		bx = 0;
-		by = 0;
-		dw = 0;
-		dh = 0;
-		dx = 0;
-		dy = 0; //reset variables
-		
-		//consider background image size
-		if (img_bg != null) 
-		{
-			bw = (int) img_bg.getWidth(this);
-			bh = (int) img_bg.getHeight(this);
-		}
-		
-		//calculate string size
-		if (current_info != null) 
-		{
-			if (current_info.length() > num_digits) 
-			{
-			    // resize string to max num of digits
-				current_info = current_info.substring(0, num_digits); 
-			}
-			
-			List<Image> current_info_images = dig.convert(current_info);
-			
+    /**
+     * overwrite update method for double buffering
+     * @param g graphics
+     */
+    public void update(Graphics g) 
+    {
+        paint(g);
+    }
 
-			for (Image theimage : current_info_images)
-			{
-				if (theimage != null) 
-				{
-					dw += theimage.getWidth(this); //sum width
-					dh = Math.max(dh, theimage.getHeight(this)); //calc highest digit
-				}
-			}
-			
-			display_images = current_info_images.toArray(new Image[0]);
-			logger.fine("number of images = " + display_images.length);
-	         //display_images = new Image[current_info_images.size()];
-		}
-		
-		//display size (background + digits)
-		//h = Math.max(dh, bh);
-		//w = Math.max(dw, bw);
-		
-		//calc coordinates (center objects)
-		dx = (int) ( (w - dw) / 2);
-		dy = (int) ( (h - dh) / 2);
-		bx = (int) ( (w - bw) / 2);
-		by = (int) ( (h - bh) / 2);
-		
-		logger.fine("DisplayPanel w=" + w + " h=" + h);
-		setSize(w, h);
-	}
-	
-	/**
-	 * Paint image at specified position
-	 * @param gbuffer graphic context
-	 * @param img image to paint
-	 * @param x X coordinate
-	 * @param y Y coordinate
-	 */
-	protected void paintImage(Graphics gbuffer, Image img, int x, int y) 
-	{
-		if (img != null) 
-		{
-			//Graphics g = getGraphics();
-			if (gbuffer == null) 
-			{
-				return;
-			}
-			gbuffer.drawImage(img, x, y, this);
-		}
-	}
-	
-	/**
-	 * draw button elements (border, image and label) at calculated positions
-	 *  @param g the graphic area when diplay button elements
-	 */
-	public synchronized void paint(Graphics g) 
-	{
-		resize(); //calculate size and get images to display
-		
-		//DOUBLE BUFFERING:
-		// Create an off screen image to draw on
-		Image offscreen = createImage(w,h);
-		Graphics bufferGraphics = offscreen.getGraphics();
-		
-		bufferGraphics.clearRect(0, 0, w, h); //clean digits area
-		
-		//paint background image
-		if (img_bg != null) 
-		{
-			paintImage(bufferGraphics, img_bg, bx, by);
-		}
-		
-		//paint display digits
-		int posx = dx; //current digit X position
-		for (Image theimage : display_images)
-		{
-		    //paint current digit image
-			paintImage(bufferGraphics, theimage, posx, dy);
-			posx += theimage.getWidth(this);
-		}
-		g.drawImage(offscreen,0,0,this);
-	}
-	
+    /**
+     * Set string to display
+     * @param info string to display
+     */
+    public void setInfo(String info) 
+    {
+        current_info = info;
+        runRepaintLater();
+    }
+
+    private void runRepaintLater()
+    {
+        SwingUtilities.invokeLater(new Runnable()
+        {
+            public void run()
+            {
+                repaint();
+            }
+        });
+    }
+
+    /**
+     * Set the display background
+     * @param image background image
+     */
+    public void setBackgroundImage(Image image) 
+    {
+        img_bg = image; //background image
+        runRepaintLater();
+    }
+
+    /**
+     * Set number of display digits
+     * @param numdig number of digits on display
+     */
+    public void setNumDigits(int numdig) 
+    {
+        num_digits = numdig;
+        runRepaintLater();
+    }
+
+    /**
+     * Set the display digits
+     * @param c2image converter
+     */
+    public void setDigitsImages(ConvertCharacterToImage c2image) 
+    {
+        dig = c2image;
+        runRepaintLater();
+    }
+
+    /**
+     * Creates the Panel's peer.
+     * The peer allows you to modify the appearance of the panel without changing its functionality.
+     */
+    public synchronized void addNotify() 
+    {
+        resize();
+        super.addNotify();
+    }
+
+    /**
+     * Resize the display
+     */
+    public void resize() 
+    {
+        bw = 0;
+        bh = 0;
+        bx = 0;
+        by = 0;
+        dw = 0;
+        dh = 0;
+        dx = 0;
+        dy = 0; //reset variables
+
+        //consider background image size
+        if (img_bg != null) 
+        {
+            bw = (int) img_bg.getWidth(this);
+            bh = (int) img_bg.getHeight(this);
+        }
+
+        //calculate string size
+        if (current_info != null) 
+        {
+            if (current_info.length() > num_digits) 
+            {
+                // resize string to max num of digits
+                current_info = current_info.substring(0, num_digits); 
+            }
+
+            List<Image> current_info_images = dig.convert(current_info);
+
+
+            for (Image theimage : current_info_images)
+            {
+                if (theimage != null) 
+                {
+                    dw += theimage.getWidth(this); //sum width
+                    dh = Math.max(dh, theimage.getHeight(this)); //calc highest digit
+                }
+            }
+
+            display_images = current_info_images.toArray(new Image[0]);
+            logger.fine("number of images = " + display_images.length);
+            //display_images = new Image[current_info_images.size()];
+        }
+
+        //display size (background + digits)
+        //h = Math.max(dh, bh);
+        //w = Math.max(dw, bw);
+
+        //calc coordinates (center objects)
+        dx = (int) ( (w - dw) / 2);
+        dy = (int) ( (h - dh) / 2);
+        bx = (int) ( (w - bw) / 2);
+        by = (int) ( (h - bh) / 2);
+
+        logger.fine("DisplayPanel w=" + w + " h=" + h);
+        setSize(w, h);
+    }
+
+    /**
+     * Paint image at specified position
+     * @param gbuffer graphic context
+     * @param img image to paint
+     * @param x X coordinate
+     * @param y Y coordinate
+     */
+    protected void paintImage(Graphics gbuffer, Image img, int x, int y) 
+    {
+        if (img != null) 
+        {
+            //Graphics g = getGraphics();
+            if (gbuffer == null) 
+            {
+                return;
+            }
+            gbuffer.drawImage(img, x, y, this);
+        }
+    }
+
+    /**
+     * draw button elements (border, image and label) at calculated positions
+     *  @param g the graphic area when diplay button elements
+     */
+    public synchronized void paint(Graphics g) 
+    {
+        resize(); //calculate size and get images to display
+
+        //DOUBLE BUFFERING:
+        // Create an off screen image to draw on
+        Image offscreen = createImage(w,h);
+        Graphics bufferGraphics = offscreen.getGraphics();
+
+        bufferGraphics.clearRect(0, 0, w, h); //clean digits area
+
+        //paint background image
+        if (img_bg != null) 
+        {
+            paintImage(bufferGraphics, img_bg, bx, by);
+        }
+
+        //paint display digits
+        int posx = dx; //current digit X position
+        for (Image theimage : display_images)
+        {
+            //paint current digit image
+            paintImage(bufferGraphics, theimage, posx, dy);
+            posx += theimage.getWidth(this);
+        }
+        g.drawImage(offscreen,0,0,this);
+    }
 }

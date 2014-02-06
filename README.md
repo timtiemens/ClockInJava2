@@ -4,12 +4,15 @@ ClockInJava2
 Simple, easy, clock implementation(s), v2
 
 2013 Jun created
+####License
+BSD-2-Clause license.  See http://opensource.org/licenses/BSD-2-Clause.
 
-####Starting Command Line
-$ gradle build
-$ java -cp build/classes tiemens.clock.Main
-$ java -cp build/classes tiemens.clock.Main simple
-$ java -cp build/classes tiemens.clock.Main image
+
+####Building and Running Command Line
+    $ gradle build
+    $ java -cp build/classes tiemens.clock.Main
+    $ java -cp build/classes tiemens.clock.Main simple
+    $ java -cp build/classes tiemens.clock.Main image
 
 "simple" - is the simplest, text-based display
 
@@ -26,8 +29,5 @@ The following items have been changed from ClockInJava:
  * remove onejar
  * remove instancer/antlr [instancer is in its own project now]
  * wrote util.ResourceHelper [hopefully for the last time]
- 
-
-####To Do
- * Completely change license from GPL to LGPL - currently, util.ResourceHelper is the only file updated
+ * update license to BSD-2-clause
 

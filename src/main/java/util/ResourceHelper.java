@@ -1,27 +1,40 @@
 /*========================================================================
  * ResourceHelper.java
  * June 6, 2013 ttiemens
- * Copyright (c) 2013 Tim Tiemems
  *========================================================================
  * This file is part of ClockInJava2.
  *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
-
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Lesser General Public License for more details.
+ * Copyright (c) 2013, Tim Tiemens
+ * All rights reserved.
  *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * You should have received a copy of the BSD-2-Clause license
+ * along with this program.  If not, see <http://opensource.org/licenses/BSD-2-Clause>.
  *    
  *    Release History:
  *    v1.0.0    Initial Release  
  *              2168b72f926a8b4b0bbb52f491e4883fdc45ee10 git sha ClockInJava2
  *    v1.0.1    Create the builder, debug dump structure, debug runtime methods
+ *              cfe32062c0e6b3f374061fa1bf75ca8d250710ee git sha ClockInJava2
+ *    v1.0.2    Update license
  *    
  */
 
@@ -48,11 +61,59 @@ import javax.imageio.ImageIO;
 
 
 /**
+ * 
+ *  <b>Basic Problem:</b> 
+ *  You want the program to get resources from the file system (src/main/resources) while in development, 
+ *   but you want the program to get resources from a single jar while in production,
+ *   without having to change the program.
+ *  And you're tired of writing the code that does this task.
+ *  
+ *  <b>Advanced Problem:</b>
+ *  You want the program to load "default" resources from its .jar file, 
+ *   but also allow an "override" resource file to be placed on the file system, and used instead.
+ *  And you're tired of writing the code that does this task.
+ *   
+ *  <b>Getting Started</b>.
+ *  <li>Copy this file into your project.
+ *      "The BSD License allows proprietary use and allows the software released under the license to be 
+ *          incorporated into proprietary products." 
+ *
+ *  <li>(Optional) Copy src/main/resources/images/icon/spinner.gif into your project
+ *       and run
+ *       $ java -cp build/classes util.ResourceHelper\$MyMain
+ *       and make sure it ends with "Image load success"
+ *        
+ *  <li>Wire in your ResourceHelper
+ *  <pre>
+ *   public static class MyMain {
+ *       public static void main(String[] arguments) throws Exception {
+ *           ResourceLoader loader = ResourceHelper.createClassResourceFileSystem(MyMain.class, "", "src/main/resources/");
+ *           Image image = ImageIO.read(loader.getResource("images/icons/spinner.gif"));
+ *           System.out.println("Image load success, info=" + image.toString());
+ *       }
+ *   }
+ *  </pre>
+ *  Then, create a file "spinner.gif", and place it at src/main/resources/images/icons/spinner.gif
+ * 
+ *  If you have no build system, then when you run your program, it will load it from the 'src/' directory.
+ *  Otherwise, the build system should copy resources into your classes directory, and it will load from there.
+ *  Finally, if you place it all into a .jar, then MyMain.class will load the image as a resource from the .jar file.
+ * 
+ * 
+ *  <b>Next Step</b>.
+ *  Look at ResourceHelper.builder() sub-system for examples of how to create really complex sequences of
+ *  ResourceLoader instances.  Mix-and-match to create all combinations from Class, FileSystem, and Zip loaders.
+ *  
+ *  <b>One Last Special Case</b>.
+ *  Sometimes, you just want to put your resource data into .java directly.
+ *  See the class RhHardCodedContentLoader, which provides a starting point, and allows you to place base-64 encoded
+ *    data into your .java, and return it as a resource.
+ * 
  * @author timtiemens
+ * @version 1.0.2
  *
  */
 public class ResourceHelper {
-
 
     public interface ResourceLoader {
         /**
@@ -61,8 +122,6 @@ public class ResourceHelper {
          * @throws nothing since it returns null on error conditions
          */
         public InputStream getResource(final String name);
-
-
 
     }
 
@@ -96,22 +155,24 @@ public class ResourceHelper {
     /**
      * Complex builder example.
      * 
-     * @param inZipFileName (short) name of a .zip or .jar file that contains resources
+     * @param inZipFileName file name (not the full path) of a .zip or .jar file that contains resources
+     *     The "full path" is determined by "inClassForResource", "inFilePrefix" and "inFilePrefix2".
      * @param inZipNeedsGzipUncompress if true, uses a GZipInputStream (".gz") to decompress the file
      *                                 if null, use true if the name ends in ".gz", otherwise false
      * @param inZipCacheAll if true, load every resource in the zip/jar file once and cache it in memory [doubles ram required]
      *                      if false, parse the zip/jar file each time a resource is requested
      * @param inClassForResource use this class's .getResourceAsStream(name) method
-     * @param inFilePrefix check the file system using this prefix first
-     * @param inFilePrefix2 then check the file system using this prefix
+     * @param inFilePrefix check the file system using this prefix first [usually "" or "./"]
+     * @param inFilePrefix2 then check the file system using this prefix [usually "src/main/resources/"]
      * @return resource loader that works very hard to find the requested resource
      */
     public static ResourceLoader buildZipfileLoader(String inZipFileName, Boolean inZipNeedsGzipUncompress, boolean inZipCacheAll,
-                                                    Class<?> inClassForResource, String inFilePrefix, String inFilePrefix2) {
+                                                    Class<?> inClassForResource, 
+                                                    String inFilePrefix, String inFilePrefix2) {
         ResourceHelperBuilder builder = new ResourceHelperBuilder();
 
         return builder
-                .lookInClassResource(ResourceHelper.class)
+                .lookInClassResource(inClassForResource)
                 .lookInFileSystem(inFilePrefix, inFilePrefix2)
                 .nameThat("BaseClassResourceFileSystem")
                 .lookInZipFile(inZipFileName, inZipNeedsGzipUncompress, builder.previousNamedLoader(), inZipCacheAll)
@@ -120,6 +181,10 @@ public class ResourceHelper {
                 .build();
     }
 
+    /**
+     * @return really really complex ResourceLoader, which uses a zip file first, and then the file system,
+     *          but also looks for the zip file in a different location
+     */
     public static ResourceLoader exampleBuildZipThenFileSystemThenClassResource() {
         ResourceHelperBuilder builder = new ResourceHelperBuilder();
 
@@ -142,9 +207,7 @@ public class ResourceHelper {
                 .build();
     }
 
-
     // =========== builder examples end
-
 
     // =========== create factory methods start
 
@@ -186,33 +249,40 @@ public class ResourceHelper {
     }
 
 
-
     /**
-     * Create a "relative" class-based loader.
+     * Create a "relative" class-based loader.  i.e. one "root".
      * 
-     * Directory/Jar structure for getResource("images/b/c.png"):
-     *    /com/a/b/BaseLoader.class
-     *    /com/a/b/images/b/c.png
+     * Directory/Jar structure for getResource("images/icons/c.png"):
+     *    /com
+     *      /foo
+     *        /BaseLoader.class
+     *        /images
+     *          /icons
+     *            /c.png
      *    
-     * @param baseLoader
+     * @param basis loader
      * @return wrapped with "" as a prefix
      */
-    private static ResourceLoader createCRLRelative(ResourceLoader baseLoader) {
-        return wrapPrefix(baseLoader, "");
+    private static ResourceLoader createCRLRelative(ResourceLoader basis) {
+        return wrapPrefix(basis, "");
     }
 
     /**
-     * Create an "absolute" class-based loader.
+     * Create an "absolute" class-based loader.  i.e. two "roots".
      * 
-     * Directory/Jar structure for getResource("images/b/c.png"):
-     *    /com/a/b/BaseLoader.class
-     *    /images/b/c.png
+     * Directory/Jar structure for getResource("images/icons/c.png"):
+     *    /com
+     *      /foo
+     *        /BaseLoader.class
+     *    /images
+     *      /icons
+     *        /c.png 
      *    
-     * @param baseLoader
+     * @param basis loader
      * @return wrapped with "/" as a prefix
      */
-    private static ResourceLoader createCRLAbsolute(ResourceLoader baseLoader) {
-        return wrapPrefix(baseLoader, "/");
+    private static ResourceLoader createCRLAbsolute(ResourceLoader basis) {
+        return wrapPrefix(basis, "/");
     }
 
     /**
@@ -222,7 +292,7 @@ public class ResourceHelper {
      * @return a loader that puts "/" in front of the requested name
      */
     public static ResourceLoader wrapPrefixSlash(ResourceLoader basis) {
-        return wrapPrefix(basis, "/");
+        return createCRLAbsolute(basis);
     }
 
     /**
@@ -238,10 +308,30 @@ public class ResourceHelper {
 
     // =========== create factory methods end
     
-    // =========== classes intended for extension start
+    // =========== classes intended for (public) extension start
     
+    /**
+     * Abstract base class for creating "hard-coded" resource loaders.
+     * I.e. the resource is base64 encoded in the actual .java file itself
+     *
+     */
     public static abstract class RhHardCodedContentLoader extends RhBaseAbstract implements ResourceLoader, ResourceLoaderDebug {
+        
+        /**
+         * Your responsibility as a subclass: provide the bytes for a requested path.
+         * It is up to you to decide how many paths you want to serve.
+         * 
+         * @param path that identifies the resource
+         * @return the byte array for the requested resource
+         */
         public abstract byte[] getResourceBytes(String path);
+        
+        /**
+         * You are also responsible for a 1-line description of this loader [for troubleshooting].
+         * @see util.ResourceHelper.RhBaseAbstract#loaderDescription()
+         */
+        public abstract String loaderDescription();
+        
         
         public final InputStream getResource(String path) {
             InputStream ret = null;
@@ -255,7 +345,7 @@ public class ResourceHelper {
             return ret;
         }
         
-        public byte[] frombase64(String... lines) {
+        public final byte[] frombase64(String... lines) {
             StringBuilder sb = new StringBuilder();
             for (String line : lines) {
                 sb.append(line);
@@ -265,7 +355,7 @@ public class ResourceHelper {
         }
         
         @Override
-        public List<?> dumpStructure() {
+        public final List<?> dumpStructure() {
             return Collections.singletonList(loaderDescription());
         }
 
@@ -278,8 +368,20 @@ public class ResourceHelper {
     /*default*/ static abstract class RhBaseAbstract {
         public abstract String loaderDescription();
 
-
+        /**
+         * Make note of an IOException where we were "really trying", i.e. it is a real exception.
+         * @param name of the resource being read
+         * @param e exception
+         */
         public final void noteIOException(String name, IOException e) {
+        }
+        
+        /**
+         * Make note of a "fake" IOException, i.e. from the result of a .close().
+         * @param name of the resource being read
+         * @param e exception
+         */
+        public final void noteIOExceptionIgnorable(String name, IOException e) {
         }
         public final void logGetResource(String path) {
             log("", path);
@@ -316,7 +418,7 @@ public class ResourceHelper {
         private static final String NO_PATH_MARKER = "**nopath**##";
     }
 
-    public static abstract class RhWrapperAbstract extends RhBaseAbstract implements ResourceLoader, ResourceLoaderDebug {
+    /*default*/ static abstract class RhWrapperAbstract extends RhBaseAbstract implements ResourceLoader, ResourceLoaderDebug {
         /*default*/ final ResourceLoader wrapped;
         public RhWrapperAbstract(final ResourceLoader wrap) {
             wrapped = wrap;
@@ -424,8 +526,7 @@ public class ResourceHelper {
                         entry = zis.getNextEntry();
                     }
                 } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    noteIOException(name, e);
                 }
             }
             try {
@@ -434,24 +535,22 @@ public class ResourceHelper {
                     is = null;
                 }
             } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
+                noteIOExceptionIgnorable(name, e);
             }
             logGetResourceConcrete(name, ret);
             return ret;
         }
-        private InputStream entryToInputStream(ZipInputStream stream, ZipEntry zipEntry) {
+        private InputStream entryToInputStream(ZipInputStream stream, ZipEntry zipEntry) throws IOException {
             // Does not work:
             //return stream;
 
             byte[] buf = entryToByteArray(stream, zipEntry);
             return new ByteArrayInputStream(buf);
         }
-        public final byte[] entryToByteArray(ZipInputStream stream, ZipEntry zipEntry) {
-
+        public final byte[] entryToByteArray(ZipInputStream stream, ZipEntry zipEntry) throws IOException {
             return streamToByteArray(stream);
         }
-        public final byte[] streamToByteArray(InputStream stream) {
+        public final byte[] streamToByteArray(InputStream stream) throws IOException {
             byte[] ret;
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             byte[] buf = new byte[1024 * 16];
@@ -462,46 +561,14 @@ public class ResourceHelper {
                 }
                 bos.flush();
                 ret = bos.toByteArray();
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-                ret = null;
             } finally {
                 if (bos != null) {
                     try {
                         bos.close();
                     } catch (IOException e) {
-                        // ignore
+                        noteIOExceptionIgnorable("streamToByteArray", e);
                     }
                 }
-            }
-
-            return ret;
-        }
-
-        public final byte[] streamToByteArrayList(InputStream stream) {
-            byte[] ret = null;
-            List<Byte> list = new ArrayList<Byte>();
-            byte[] buf = new byte[1024 * 16];
-            int read;
-
-            try {
-                while ( (read = stream.read(buf)) > 0)
-                {
-                    for (int i = 0, n = read; i < n ; i++) {
-                        list.add(buf[i]);
-                    }
-                }
-                ret = new byte[list.size()];
-                int i = 0;
-                for (Byte b : list) {
-                    ret[i] = b;
-                    i++;
-                }
-
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
             }
 
             return ret;
@@ -517,9 +584,11 @@ public class ResourceHelper {
                 if (needsGzipUncompress) {
                     try {
                         is = new GZIPInputStream(is);
-
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        // probably not actually a .gz file:
+                        noteIOException("createZipInputStream", e);
+                    }  finally {
+                        
                     }
                 }
                 ret = new ZipInputStream(is);
@@ -528,6 +597,11 @@ public class ResourceHelper {
         }
     }
 
+    /**
+     * A version of the .zip/.jar loader that loads ALL of the available resources at creation, 
+     * in order to avoid re-parsing for every single .getResource() call.
+     *
+     */
     public static class RhZipfileCacheAllLoader extends RhZipfileLoader implements ResourceLoader {
         private Map<String, byte[]> path2buf = null;
         private boolean initialized = false;
@@ -559,8 +633,8 @@ public class ResourceHelper {
                             entry = zis.getNextEntry();
                         }
                     } catch (IOException e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
+                        logInitialize("precaching failed with IOException: " + e);
+                        noteIOException(name, e);
                     }
                 }
                 try {
@@ -569,8 +643,7 @@ public class ResourceHelper {
                         zis = null;
                     }
                 } catch (IOException e) {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    noteIOExceptionIgnorable(name, e);
                 }
             }
         }
@@ -671,8 +744,9 @@ public class ResourceHelper {
         }
         @Override
         public InputStream getResource(String name) {
-            logGetResource(name);
-            return wrapped.getResource(prefix + name);
+            String passOnName = prefix + name;
+            logGetResource(passOnName);
+            return wrapped.getResource(passOnName);
         }
         @Override
         public String loaderDescription() {
@@ -686,6 +760,10 @@ public class ResourceHelper {
     }
 
 
+    /**
+     * Provide helper that converts InputStream into useful types like Image, Properties, etc.
+     *
+     */
     public static class RhTypeConverterWrapper extends RhWrapperAbstract implements ResourceLoader {
         public RhTypeConverterWrapper(final ResourceLoader basis) {
             super(basis);
@@ -719,8 +797,8 @@ public class ResourceHelper {
             return ret;
         }
 
-        // TODO: java.lang.Property
-        // TODO: Zipfileinputstream?
+        // ENHANCEMENT: public java.lang.Property getResourceAsProperty(String name)
+        // ENHANCEMENT: ?public Zipfileinputstream getResourceAsZipfileInputstream(String name)
 
 
         @Override
@@ -799,6 +877,11 @@ public class ResourceHelper {
             ResourceLoader basis = new RhFileSystem();
 
             for (String prefix : locations) {
+                boolean endsWithSeparator = prefix.endsWith("/") || prefix.endsWith("\\");
+                boolean isempty = prefix.isEmpty();
+                if (!isempty && !endsWithSeparator) {
+                    throw exceptionCreate("File system prefix location did not end with file separator: '" + prefix + "'");
+                }
                 if (prefix != null) {
                     preparing.add(wrapPrefix(basis, prefix));
                 }
@@ -807,7 +890,7 @@ public class ResourceHelper {
             return this;
         }
 
-        public ResourceHelperBuilder lookInClassResource(Class<ResourceHelper> class1) {
+        public ResourceHelperBuilder lookInClassResource(Class<?> class1) {
             ResourceLoader basis = new RhClassLoader(class1);
 
             preparing.add(wrapPrefix(basis, ""));
@@ -822,7 +905,7 @@ public class ResourceHelper {
             } else if (fromlist.size() > 1) {
                 return new RhChainWrapper(preparing);
             } else {
-                throw new RuntimeException("Builder.build called with empty prepared list");
+                throw exceptionCreate("Builder.build called with empty prepared list");
             }
         }
         
@@ -837,7 +920,7 @@ public class ResourceHelper {
         boolean inNeedsGzipUncompress = name.endsWith(".gz");
         boolean inLoadAllAtOnce = true;
         ResourceLoader zl = createZipfileLoader(name, inNeedsGzipUncompress, inLoadAllAtOnce, 
-                ResourceHelper.class, "", "src/main/resources/");
+                                                ResourceHelper.class, "", "src/main/resources/");
         String imgname = "images/small_6x9/black/8.gif";
         imgname = "images/lcd_14x23/gray/0.gif";
         imgname = "images/hand_26x31/6.gif";
@@ -883,6 +966,30 @@ public class ResourceHelper {
         }
     }
 
+    // =========== exception start
+    private static RuntimeException exceptionCreate(String msg) {
+        return new ResourceHelper.ResourceHelperException(msg);
+    }
+    public static class ResourceHelperException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
+        public ResourceHelperException() {
+            super();
+        }
+
+        public ResourceHelperException(String message, Throwable cause) {
+            super(message, cause);
+        }
+
+        public ResourceHelperException(String message) {
+            super(message);
+        }
+
+        public ResourceHelperException(Throwable cause) {
+            super(cause);
+        }
+    }
+    
     // =========== debug structure start
     
     public interface ResourceLoaderDebug {
@@ -922,7 +1029,7 @@ public class ResourceHelper {
                     List sublist = (List) obj;
                     dump(depth +1, lines, sublist);
                 } else {
-                    throw new RuntimeException("subclass failed: class=" + obj.getClass().getName());
+                    throw exceptionCreate("subclass failed: class=" + obj.getClass().getName());
                 }
             }
         }
@@ -930,4 +1037,12 @@ public class ResourceHelper {
     
     // =========== debug structure end
     
+    
+    public static class MyMain {
+        public static void main(String[] arguments) throws Exception {
+            ResourceLoader loader = ResourceHelper.createClassResourceFileSystem(MyMain.class, "", "src/main/resources/");
+            Image image = ImageIO.read(loader.getResource("images/icons/spinner.gif"));
+            System.out.println("Image load success, info=" + image.toString());
+        }
+    }
 }

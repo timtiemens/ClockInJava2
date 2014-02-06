@@ -1,22 +1,34 @@
 /*========================================================================
- * Clock.java
- * May 16, 2011 11:05:47 PM | ttiemens
- * Copyright (c) 2011 Tim Tiememsn
+ * ConvertCharacterToImageFactory.java
+ * June 6, 2013 ttiemens
  *========================================================================
- * This file is part of ClockInJava.
+ * This file is part of ClockInJava2.
  *
- *    ClockInJava is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ * Copyright (c) 2013, Tim Tiemens
+ * All rights reserved.
  *
- *    ClockInJava is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU General Public License for more details.
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above copyright
+ *       notice, this list of conditions and the following disclaimer in the
+ *       documentation and/or other materials provided with the distribution.
  *
- *    You should have received a copy of the GNU General Public License
- *    along with ClockInJava.  If not, see <http://www.gnu.org/licenses/>.
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+ * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
+ * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+ * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * You should have received a copy of the BSD-2-Clause license
+ * along with this program.  If not, see <http://opensource.org/licenses/BSD-2-Clause>.
+ *   
  */
 package tiemens.clock.simpleimage;
 
@@ -71,12 +83,12 @@ public class ConvertCharacterToImageFactory
         private final Color prefBackgroundColor;
         private Types(String inextra)
         {
-        	this(inextra, null);
+            this(inextra, null);
         }
         private Types(String inextra, Color prefBgColor)
         {
             extraPath = inextra;
-        	prefBackgroundColor = prefBgColor;
+            prefBackgroundColor = prefBgColor;
         }
         
         public String getPath(final String prefix)
@@ -96,7 +108,10 @@ public class ConvertCharacterToImageFactory
         }
         public Color getPreferBackgroundColor()
         {
-        	return prefBackgroundColor;
+            return prefBackgroundColor;
+        }
+        public String getHumanName() {
+            return this.name();
         }
     }
     
@@ -168,7 +183,7 @@ public class ConvertCharacterToImageFactory
             Image image = loadImageMultipleLocations(path);
             if (image == null)
             {
-            	throw new RuntimeException("Failed to load image at " + path);
+                throw new RuntimeException("Failed to load image at " + path);
             }
             
             logger.fine("Image load [" + path + "] x=" + image.getWidth(null) + 
@@ -178,129 +193,130 @@ public class ConvertCharacterToImageFactory
         }
         
         ConvertCharacterToImage ret = 
-        		new ConvertCharacterToImage(map,
-        		                            intype.getPreferBackgroundColor());
+                new ConvertCharacterToImage(intype.getHumanName(),
+                                            map,
+                                            intype.getPreferBackgroundColor());
         return ret;
     }
 
     // Create a resource loader that looks in the .zip file first, then tries class-loader, then the filesystem:
     private static ResourceLoader zl = 
-    		ResourceHelper.buildZipfileLoader("images.zip.gz", true, true,
-    	                                      ResourceHelper.class, "", "src/main/resources/");
-    		//ResourceHelper.createZipfileLoader("images.zip.gz", true, true,
+            ResourceHelper.buildZipfileLoader("images.zip.gz", true, true,
+                                              ResourceHelper.class, "", "src/main/resources/");
+            //ResourceHelper.createZipfileLoader("images.zip.gz", true, true,
             //ResourceHelper.class, "", "src/main/resources/");
-    		//ResourceHelper.type();
+            //ResourceHelper.type();
     private static boolean dumped = false;
     private static Image loadImageMultipleLocations(String path)
     {
-    	if (! dumped) {
-    		dumped = true;
-    		ResourceHelper.ResourceLoaderDebugUtil.dump(zl);
-    	}
-    	return new ResourceHelper.RhTypeConverterWrapper(zl).getResourceAsImage(path);
+        if (! dumped) {
+            dumped = true;
+            ResourceHelper.ResourceLoaderDebugUtil.dump(zl);
+        }
+        return new ResourceHelper.RhTypeConverterWrapper(zl).getResourceAsImage(path);
     }
     
     @SuppressWarnings("unused")
-	private static Image loadImageMultipleLocations2(String path)
+    private static Image loadImageMultipleLocations2(String path)
     {
-    	Image ret = null;
-    	
-    	if (ret == null)
-    	{
-    		ret = loadImageFromJarFile(path);
-    	}
-    	
-    	if (ret == null)
-    	{
-    		ret = loadImageFromResource(path);
-    	}
-    	
-    	if (ret == null)
-    	{
-    		ret = loadImageFromFileSystem(path);
-    	}
-    	return ret;
+        Image ret = null;
+        
+        if (ret == null)
+        {
+            ret = loadImageFromJarFile(path);
+        }
+        
+        if (ret == null)
+        {
+            ret = loadImageFromResource(path);
+        }
+        
+        if (ret == null)
+        {
+            ret = loadImageFromFileSystem(path);
+        }
+        return ret;
     }
     
     private static Class<?> getClassForResourceLoading()
     {
-    	return ConvertCharacterToImageFactory.class;
+        return ConvertCharacterToImageFactory.class;
     }
     
     private static boolean attemptedToFindJarFile = false;
     private static JarInputStream jarInputStream = null;
     private static void assignJarFile()
     {
-    	attemptedToFindJarFile = true;
-    	
-    	String imagePath = "images.jar.gz";
-    	InputStream in = getClassForResourceLoading().getResourceAsStream(imagePath);
-    	if (in == null)
-    	{
-    		imagePath = "/" + imagePath;
-    		in = getClassForResourceLoading().getResourceAsStream(imagePath);
-    	}
-    	if (in != null)
-    	{
-    		System.out.println("As a resource, found images.jar.gz at " + imagePath);
-    		try {
-				jarInputStream = new JarInputStream(new GZIPInputStream(in));
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-    	}
+        attemptedToFindJarFile = true;
+        
+        String imagePath = "images.jar.gz";
+        InputStream in = getClassForResourceLoading().getResourceAsStream(imagePath);
+        if (in == null)
+        {
+            imagePath = "/" + imagePath;
+            in = getClassForResourceLoading().getResourceAsStream(imagePath);
+        }
+        if (in != null)
+        {
+            System.out.println("As a resource, found images.jar.gz at " + imagePath);
+            try {
+                jarInputStream = new JarInputStream(new GZIPInputStream(in));
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
     }
     private static Image loadImageFromJarFile(String path)
     {
-    	Image ret = null;
-    	if (! attemptedToFindJarFile)
-    	{
-    		assignJarFile();
-    	}
-    	
-    	if (jarInputStream != null)
-    	{
-    		
-    	}
-    	return ret;
+        Image ret = null;
+        if (! attemptedToFindJarFile)
+        {
+            assignJarFile();
+        }
+        
+        if (jarInputStream != null)
+        {
+            
+        }
+        return ret;
     }
     
     private static Image loadImageFromResource(String path)
     {
-    	Image ret = null;
-    	URL url = getClassForResourceLoading().getResource(path);
-    	if (url == null)
-    	{
-    		url = getClassForResourceLoading().getResource("/" + path);
-    		if (url != null)
-    		{
-    			System.out.println("leading / fixed it");
-    		}
-    	}
- 
-    	if (url != null)
-    	{
-    		ret = new ImageIcon(url).getImage();
-    	}
-    	else
-    	{
-    		//URL for path images/lcd_14x23/gray/0.gif was null
-    		System.out.println("URL for path " + path + " was null");
-    	}
-    			
-    	return ret;
+        Image ret = null;
+        URL url = getClassForResourceLoading().getResource(path);
+        if (url == null)
+        {
+            url = getClassForResourceLoading().getResource("/" + path);
+            if (url != null)
+            {
+                System.out.println("leading / fixed it");
+            }
+        }
+        
+        if (url != null)
+        {
+            ret = new ImageIcon(url).getImage();
+        }
+        else
+        {
+            //URL for path images/lcd_14x23/gray/0.gif was null
+            System.out.println("URL for path " + path + " was null");
+        }
+        
+        return ret;
     }
     
     private static Image loadImageFromFileSystem(String path)
     {
-    	if (! new File(path).exists())
+        if (! new File(path).exists())
         {
-    		String cheatpath = "src/main/resources/" + path;
-    		if (new File(cheatpath).exists()) 
-    		{
-    			path = cheatpath;
-    		}
+            String cheatpath = "src/main/resources/" + path;
+            if (new File(cheatpath).exists()) 
+            {
+                path = cheatpath;
+            }
         }
         logger.info("Loading image: [" + path + "]");
         BufferedImage img = null;
