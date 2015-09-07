@@ -10,9 +10,9 @@ BSD-2-Clause license.  See http://opensource.org/licenses/BSD-2-Clause.
 
 ####Building and Running Command Line
     $ gradle build
-    $ java -cp build/classes tiemens.clock.Main
-    $ java -cp build/classes tiemens.clock.Main simple
-    $ java -cp build/classes tiemens.clock.Main image
+    $ java -cp build/classes/main tiemens.clock.Main
+    $ java -cp build/classes/main tiemens.clock.Main simple
+    $ java -cp build/classes/main tiemens.clock.Main image
 
 "simple" - is the simplest, text-based display
 
